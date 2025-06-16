@@ -118,16 +118,7 @@
 
       <!-- Messages Area -->
       <div id="chat-messages" class="flex-1 p-4 overflow-y-auto space-y-4">
-        <!-- Bot Welcome Message -->
-        <div class="flex items-start gap-2.5">
-          <div
-            class="flex flex-col w-full max-w-[320px] leading-1.5 p-4 border-gray-200 bg-gray-100 rounded-e-xl rounded-es-xl"
-          >
-            <p class="text-sm font-normal text-gray-900">
-              مرحباً! أنا فوزي مساعد سهلة استور هنا لمساعدتك. كيف يمكنني خدمتك اليوم؟
-            </p>
-          </div>
-        </div>
+        <!-- Messages will be loaded here dynamically -->
       </div>
 
       <!-- Typing Indicator -->
@@ -194,7 +185,6 @@
       const typingIndicator = document.getElementById("typing-indicator");
       
       // --- Sound Effects ---
-      // This flag ensures sound is started by user interaction
       let isAudioReady = false; 
       const userSound = new Tone.Synth({
           oscillator: { type: 'sine' },
@@ -207,9 +197,8 @@
       }).toDestination();
 
       // --- Bot Configuration ---
-      const openRouterApiKey =
-        "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";
-      const modelName = "deepseek/deepseek-chat";
+      const openRouterApiKey = "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";
+      const modelName = "deepseek/deepseek-r1-0528-qwen3-8b:free"; // UPDATED MODEL
       const apiUrl = "https://openrouter.ai/api/v1/chat/completions";
 
       // --- Information for the Bot ---
@@ -268,8 +257,9 @@
         "انت كمساعد اسمك فوزي",
         "الأسعار عندا الخطة الأولي و دي تكلفتها 59 ريال والخطة التانية ودي تكلفتها 149 ريال سعودي و الخطة التالتة ودي تكلفتها 300 ريال المميزات",
       ];
-
+      // This holds the conversation history for the API
       let conversationHistory = [];
+      const localStorageKey = "faqBotHistory";
 
       // --- Event Listeners ---
 
@@ -300,8 +290,11 @@
         
         const userMessage = chatInput.value.trim();
         if (userMessage) {
-          userSound.triggerAttackRelease("C4", "8n"); // Play user message sound
-          addMessage(userMessage, "user");
+          userSound.triggerAttackRelease("C4", "8n");
+          addMessageToUI(userMessage, "user");
+          // Add user message to history and save before sending to bot
+          conversationHistory.push({ role: "user", content: userMessage });
+          saveConversationToLocalStorage();
           chatInput.value = "";
           getBotResponse(userMessage);
         }
@@ -309,19 +302,11 @@
 
       // --- Functions ---
       
-      /**
-       * Parses simple markdown (bold, lists) into HTML.
-       * @param {string} text The text to parse.
-       * @returns {string} The HTML formatted text.
-       */
       function parseMarkdown(text) {
           let html = text
-              // Bold: **text** -> <strong>text</strong>
               .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-              // Italic: *text* -> <em>text</em>
               .replace(/\*(.*?)\*/g, '<em>$1</em>');
               
-          // Handle lists: - item -> <ul><li>item</li>...</ul>
           const lines = html.split('\n');
           let inList = false;
           html = lines.map(line => {
@@ -342,13 +327,13 @@
           }).join('<br>');
 
           if (inList) {
-              html += '</ul>'; // Close list if it's the last element
+              html += '</ul>';
           }
           
           return html.replace(/<br>/g, '\n').replace(/\n/g, '<br>');
       }
 
-      function addMessage(text, sender) {
+      function addMessageToUI(text, sender) {
         const messageWrapper = document.createElement("div");
 
         if (sender === "user") {
@@ -360,7 +345,6 @@
             </div>
           `;
         } else {
-          // Parse markdown for bot messages before displaying
           const formattedText = parseMarkdown(text);
           messageWrapper.innerHTML = `
             <div class="flex items-start gap-2.5">
@@ -383,9 +367,50 @@
         }
       }
 
-      async function getBotResponse(userMessage) {
+      function saveConversationToLocalStorage() {
+          try {
+              localStorage.setItem(localStorageKey, JSON.stringify(conversationHistory));
+          } catch (error) {
+              console.error("Could not save conversation to local storage:", error);
+          }
+      }
+
+      function loadConversationFromLocalStorage() {
+          try {
+              const storedHistory = localStorage.getItem(localStorageKey);
+              if (storedHistory) {
+                  conversationHistory = JSON.parse(storedHistory);
+                  chatMessages.innerHTML = ''; // Clear existing messages
+                  conversationHistory.forEach(message => {
+                      addMessageToUI(message.content, message.role);
+                  });
+              } else {
+                  // If no history, add the initial welcome message
+                  const welcomeMessage = {
+                      role: "assistant",
+                      content: "مرحباً! أنا فوزي مساعد سهلة استور هنا لمساعدتك. كيف يمكنني خدمتك اليوم؟",
+                  };
+                  conversationHistory.push(welcomeMessage);
+                  addMessageToUI(welcomeMessage.content, "assistant");
+                  saveConversationToLocalStorage(); // Save initial state
+              }
+          } catch (error) {
+              console.error("Could not load or parse conversation from local storage:", error);
+              // Fallback to default welcome message
+               const welcomeMessage = {
+                      role: "assistant",
+                      content: "مرحباً! أنا فوزي مساعد سهلة استور هنا لمساعدتك. كيف يمكنني خدمتك اليوم؟",
+                };
+                addMessageToUI(welcomeMessage.content, "assistant");
+          }
+      }
+
+      async function getBotResponse() {
         toggleTypingIndicator(true);
-        conversationHistory.push({ role: "user", content: userMessage });
+
+        // Keep the history sent to the API concise to manage API usage/cost.
+        // Sending the last 10 messages provides enough context.
+        const shortHistory = conversationHistory.slice(-10);
 
         const systemPrompt = `
           أنت مساعد خدمة عملاء متخصص. مهمتك هي الإجابة على أسئلة المستخدمين باللغة العربية بالاعتماد **حصراً** على المعلومات التالية. لا تخمن أو تستخدم أي معلومات خارجية.
@@ -398,7 +423,7 @@
 
         const messagesPayload = [
           { role: "system", content: systemPrompt },
-          ...conversationHistory,
+          ...shortHistory,
         ];
 
         try {
@@ -422,28 +447,26 @@
           const data = await response.json();
           const botReply = data.choices[0].message.content;
 
-          conversationHistory.push({ role: "assistant", content: botReply });
-
-          if (conversationHistory.length > 10) {
-            conversationHistory = conversationHistory.slice(-10);
-          }
-          
-          // Play sound then add message
           if(isAudioReady) botSound.triggerAttackRelease("G4", "8n");
-          addMessage(botReply, "bot");
+          addMessageToUI(botReply, "bot");
+          
+          // Add bot reply to full history and save
+          conversationHistory.push({ role: "assistant", content: botReply });
+          saveConversationToLocalStorage();
 
         } catch (error) {
           console.error("Error fetching bot response:", error);
-          addMessage("عذراً، حدث خطأ ما. يرجى المحاولة مرة أخرى لاحقاً.", "bot");
+          addMessageToUI("عذراً، حدث خطأ ما. يرجى المحاولة مرة أخرى لاحقاً.", "bot");
         } finally {
           toggleTypingIndicator(false);
         }
       }
-
-      conversationHistory.push({
-        role: "assistant",
-        content: "مرحباً! أنا فوزي مساعد سهلة استور هنا لمساعدتك. كيف يمكنني خدمتك اليوم؟",
+      
+      // --- Initial Load ---
+      document.addEventListener('DOMContentLoaded', () => {
+          loadConversationFromLocalStorage();
       });
+
     </script>
   </body>
 </html>
