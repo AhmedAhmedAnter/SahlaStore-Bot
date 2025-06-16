@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>مساعد سهلة استور</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Cairo for Arabic UI -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Tone.js for Sound Effects -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+    <style>
+      /* Apply Cairo font to the body */
+      body {
+        font-family: "Cairo", sans-serif;
+      }
+      /* Custom scrollbar for chat */
+      #chat-messages::-webkit-scrollbar {
+        width: 6px;
+      }
+      #chat-messages::-webkit-scrollbar-track {
+        background: #f1f1f1;
+      }
+      #chat-messages::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 6px;
+      }
+      #chat-messages::-webkit-scrollbar-thumb:hover {
+        background: #555;
+      }
+      /* Hide/show transition for the chat widget */
+      .chat-widget-hidden {
+        transform: scale(0.95);
+        opacity: 0;
+        visibility: hidden;
+        transition: transform 0.2s ease-out, opacity 0.2s ease-out,
+          visibility 0s linear 0.2s;
+      }
+      .chat-widget-visible {
+        transform: scale(1);
+        opacity: 1;
+        visibility: visible;
+        transition: transform 0.2s ease-in, opacity 0.2s ease-in;
+      }
+      /* Styling for formatted lists from the bot */
+      .bot-message ul {
+        list-style-type: disc;
+        padding-right: 20px; /* Use padding-right for RTL */
+        margin-top: 8px;
+      }
+      .bot-message li {
+        margin-bottom: 4px;
+      }
+    </style>
+  </head>
+  <body class="bg-gray-100">
+    <!-- =========== Support Button =========== -->
+    <button
+      id="support-button"
+      class="fixed bottom-5 left-5 bg-[#004f39] text-white p-4 rounded-full shadow-lg hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-[#004f39] focus:ring-offset-2 transition-transform transform hover:scale-110 z-50"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        class="h-8 w-8"
+        viewBox="0 0 20 20"
+        fill="currentColor"
+      >
+        <path
+          fill-rule="evenodd"
+          d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+          clip-rule="evenodd"
+        />
+      </svg>
+    </button>
+    <span
+      class="fixed bottom-8 left-20 bg-gray-800 text-white text-sm rounded-md px-2 py-1 opacity-0 transition-opacity"
+      id="support-tooltip"
+    >
+      عندك سؤال ؟
+    </span>
+
+    <!-- =========== Chat Widget =========== -->
+    <div
+      id="chat-widget"
+      class="fixed bottom-[calc(4rem+1.25rem)] left-5 w-full max-w-sm h-[70vh] max-h-[600px] bg-white rounded-2xl shadow-2xl flex flex-col chat-widget-hidden z-40"
+    >
+      <!-- Header -->
+      <div
+        class="flex justify-between items-center p-4 bg-[#004f39] text-white rounded-t-2xl"
+      >
+        <h3 class="text-lg font-bold">فوزي مساعد سهلة</h3>
+        <button
+          id="close-chat"
+          class="text-white hover:bg-teal-700 rounded-full p-1"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-6 w-6"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Messages Area -->
+      <div id="chat-messages" class="flex-1 p-4 overflow-y-auto space-y-4">
+        <!-- Bot Welcome Message -->
+        <div class="flex items-start gap-2.5">
+          <div
+            class="flex flex-col w-full max-w-[320px] leading-1.5 p-4 border-gray-200 bg-gray-100 rounded-e-xl rounded-es-xl"
+          >
+            <p class="text-sm font-normal text-gray-900">
+              مرحباً! أنا فوزي مساعد سهلة استور هنا لمساعدتك. كيف يمكنني خدمتك اليوم؟
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Typing Indicator -->
+      <div id="typing-indicator" class="p-4 hidden">
+        <div class="flex items-start gap-2.5">
+          <div
+            class="flex flex-col w-full max-w-[320px] leading-1.5 p-4 border-gray-200 bg-gray-100 rounded-e-xl rounded-es-xl"
+          >
+            <div class="flex items-center space-x-2 rtl:space-x-reverse">
+              <span
+                class="block w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"
+              ></span>
+              <span
+                class="block w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"
+              ></span>
+              <span
+                class="block w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+              ></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Input Area -->
+      <div class="p-4 border-t border-gray-200">
+        <form id="chat-form" class="flex items-center gap-2">
+          <input
+            type="text"
+            id="chat-input"
+            class="flex-1 w-full px-4 py-2 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-[#004f39] focus:border-[#004f39]"
+            placeholder="اكتب سؤالك هنا..."
+            required
+          />
+          <button
+            type="submit"
+            class="p-2 text-white bg-teal-600 rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-[#004f39]"
+          >
+            <svg
+              class="w-6 h-6 transform rotate-180"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"
+                clip-rule="evenodd"
+              ></path>
+            </svg>
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      // --- DOM Elements ---
+      const supportButton = document.getElementById("support-button");
+      const supportTooltip = document.getElementById("support-tooltip");
+      const chatWidget = document.getElementById("chat-widget");
+      const closeChatButton = document.getElementById("close-chat");
+      const chatForm = document.getElementById("chat-form");
+      const chatInput = document.getElementById("chat-input");
+      const chatMessages = document.getElementById("chat-messages");
+      const typingIndicator = document.getElementById("typing-indicator");
+      
+      // --- Sound Effects ---
+      // This flag ensures sound is started by user interaction
+      let isAudioReady = false; 
+      const userSound = new Tone.Synth({
+          oscillator: { type: 'sine' },
+          envelope: { attack: 0.005, decay: 0.1, sustain: 0.3, release: 0.1 }
+      }).toDestination();
+      
+      const botSound = new Tone.Synth({
+          oscillator: { type: 'triangle' },
+          envelope: { attack: 0.005, decay: 0.2, sustain: 0.2, release: 0.2 }
+      }).toDestination();
+
+      // --- Bot Configuration ---
+      const openRouterApiKey =
+        "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";
+      const modelName = "deepseek/deepseek-chat";
+      const apiUrl = "https://openrouter.ai/api/v1/chat/completions";
+
+      // --- Information for the Bot ---
+      const faqData = [
+        "ما هي سهلة استور؟:\nسهلة استور هي منصة تجارة إلكترونية بدون كود.\nتمكّن أي شخص من إنشاء متجر إلكتروني بسهولة.\nلا تحتاج لأي خبرة تقنية أو تصميم.",
+        "ما الهدف من سهلة استور؟:\nالهدف هو تمكين رواد الأعمال من دخول عالم التجارة الإلكترونية بسهولة.\nتوفير أدوات جاهزة تساعد في البيع أونلاين بدون تعقيد.",
+        "هل أحتاج إلى مبرمج لإنشاء متجر على سهلة؟:\nلا، لا تحتاج لأي مبرمج.\nالموقع يوفّر منشئ متاجر سهل بالسحب والإفلات.\nيمكنك تصميم متجرك بنفسك.",
+        "كيف أبدأ مع سهلة استور؟:\nقم بإنشاء حساب.\nاختر خطة الأسعار المناسبة.\nابدأ في رفع منتجاتك وتصميم متجرك.",
+        "ما هي طرق الدفع المتاحة؟:\nفيزا، ماستر كارد، فوري، المحافظ الإلكترونية، الدفع عند الاستلام.\nيمكنك تفعيل أكثر من طريقة دفع بسهولة من لوحة التحكم.",
+        "هل يمكنني بيع منتجات رقمية؟:\nنعم، سهلة استور تدعم بيع المنتجات الرقمية مثل الكتب، الدورات، البرامج، وغيرها.",
+        "هل يمكنني ربط متجري بوسائل التواصل الاجتماعي؟:\nنعم، يمكنك ربط متجرك بفيسبوك، إنستجرام، واتساب، وتيك توك بسهولة.",
+        "هل يوجد تطبيق للموبايل؟:\nحاليًا المتجر يعمل على المتصفح بشكل ممتاز.\nيتم العمل على تطوير تطبيقات موبايل مستقبلًا.",
+        "هل يمكن استخدام سهلة من الهاتف؟:\nنعم، لوحة التحكم متجاوبة وتعمل بشكل ممتاز على الموبايل.",
+        "هل أستطيع تغيير تصميم متجري؟:\nنعم، يوجد أكثر من قالب يمكن التعديل عليه بالكامل.\nيمكنك تخصيص الألوان، الخطوط، الصور، وكل التفاصيل.",
+        "ما هي مميزات التحليلات في سهلة؟:\nتحليلات لحظية للمبيعات، الطلبات، الزوار.\nتقارير تساعدك على اتخاذ قرارات أفضل.",
+        "هل يمكن إدارة الطلبات من لوحة التحكم؟:\nنعم، يمكنك إدارة الطلبات، الطباعة، تغيير الحالة، إرسال إشعارات، وتتبع كل عملية بيع.",
+        "هل المنصة تدعم اللغة العربية؟:\nنعم، سهلة تدعم اللغة العربية والإنجليزية، ويمكن تشغيل المتجر بأي لغة تختارها.",
+        "هل يمكنني استخدام اسم نطاق خاص؟:\nنعم، يمكنك ربط دومين خاص بك بالمتجر بسهولة من خلال الإعدادات.",
+        "هل توفر المنصة دعم فني؟:\nنعم، هناك دعم فني سريع عبر الشات أو البريد الإلكتروني لمساعدتك في أي وقت.",
+        "هل سهلة مناسبة للمبتدئين؟:\nبكل تأكيد، المنصة مصممة لتناسب المبتدئين.\nمع واجهة استخدام بديهية وسهلة.",
+        "هل المنصة مناسبة للشركات؟:\nنعم، سواء كنت فردًا أو شركة، سهلة توفر أدوات احترافية تدعم النمو والتوسع.",
+        "هل يمكن إنشاء كوبونات خصم؟:\nنعم، يمكنك إنشاء كوبونات خصم بأنواع مختلفة.\nمثلاً: خصم بنسبة مئوية أو مبلغ ثابت.",
+        "هل المنصة آمنة؟:\nنعم، تستخدم سهلة تشفير بيانات قوي، واتصال HTTPS لحماية المستخدمين والمعاملات.",
+        "هل يمكنني عرض تقييمات العملاء؟:\nنعم، يمكن تفعيل خاصية تقييمات العملاء على المنتجات لزيادة الثقة والمصداقية.",
+        "هل المنصة تدعم SEO؟:\nنعم، سهلة مجهّزة لتحسين ظهور متجرك في محركات البحث.",
+        "هل يمكن تتبع الشحن؟:\nتستطيع ربط متجرك بخدمات الشحن وتتبع الطلبيات من خلال لوحة التحكم.",
+        "هل يمكن عرض المنتجات بشكل احترافي؟:\nنعم، يمكنك عرض صور متعددة، وصف مفصّل، خصائص مخصصة، وأسعار العروض.",
+        "هل يوجد تكامل مع خدمات البريد الإلكتروني؟:\nنعم، يمكنك ربط متجرك بمنصات مثل Mailchimp لإرسال نشرات إخبارية.",
+        "هل يمكنني ربط المتجر بـ Google Analytics؟:\nنعم، سهلة توفر تكامل مباشر مع Google Analytics وMeta Pixel.",
+        "هل يمكن بيع من خلال واتساب؟:\nنعم، يوجد زر واتساب مباشر على كل منتج لسهولة التواصل.",
+        "هل يمكنني تحديد الشحن حسب المنطقة؟:\nنعم، يمكنك تخصيص رسوم الشحن بناءً على المدينة أو الدولة.",
+        "هل يوجد نظام تقييم المنتجات؟:\nنعم، يمكن للعملاء ترك تقييماتهم بعد الشراء.",
+        "هل المنصة تحتوي على تطبيقات إضافية؟:\nنعم، يوجد Marketplace داخلي لإضافة مزايا إضافية بسهولة.",
+        "هل يمكن بيع بالجملة؟:\nنعم، يمكنك تحديد أسعار خاصة للجملة أو كميات معينة.",
+        "هل يمكن إعداد رسائل تلقائية؟:\nنعم، يوجد نظام إشعارات ورسائل تلقائية للعملاء.",
+        "هل المنصة تدعم تعدد العملات؟:\nنعم، يمكنك عرض المنتجات بعملات متعددة حسب البلد.",
+        "هل يمكنني تخصيص صفحة الدفع؟:\nنعم، يمكنك تعديل الحقول المطلوبة في صفحة الدفع حسب احتياجك.",
+        "هل سهلة تدعم دروب شيبنج؟:\nنعم، يمكنك ربط متجرك بمنصات دروب شيبنج بسهولة.",
+        "هل أحتاج إلى استضافة خارجية؟:\nلا، سهلة توفر استضافة سحابية عالية الأداء.",
+        "هل يوجد نسخ احتياطي تلقائي؟:\nنعم، يتم عمل نسخ احتياطي منتظم لحماية بياناتك.",
+        "هل المنصة مناسبة للمنتجات الغذائية؟:\nنعم، يمكنك بيع الطعام، الحلويات، المنتجات الزراعية، وغيرها.",
+        "هل يمكن تخصيص صفحة شكراً بعد الشراء؟:\nنعم، يمكنك كتابة رسالة شكر أو تحويل العميل لصفحة معينة.",
+        "هل يوجد تطبيق للمحاسبة؟:\nيمكنك تصدير الفواتير وربطها بأنظمة خارجية بسهولة.",
+        "هل يمكن بيع منتجات بخدمة الاشتراك الشهري؟:\nنعم، سهلة تدعم البيع المتكرر والاشتراكات الدورية.",
+        "هل يمكنني تعيين فريق عمل؟:\nنعم، يمكنك إنشاء حسابات فرعية لكل موظف وتحديد الصلاحيات.",
+        "هل يمكن تغيير اللغة للعملاء؟:\nنعم، يمكن للعملاء التبديل بين اللغات المدعومة من المتجر.",
+        "هل يمكن جدولة نشر المنتجات؟:\nنعم، يمكنك رفع المنتجات وتحديد وقت نشرها تلقائيًا.",
+        "هل يوجد نظام نقاط للعملاء؟:\nتعمل سهلة على إضافة أنظمة ولاء مستقبلًا.",
+        "هل المنصة تدعم البيع في أكثر من بلد؟:\nنعم، يمكنك البيع عالميًا والتحكم في التوصيل والعملة لكل بلد.",
+        "هل يمكن ربط المتجر بتطبيق خارجي؟:\nنعم، هناك API لربط سهلة بأي نظام خارجي.",
+        "هل أستطيع عرض العروض والخصومات؟:\nنعم، سهلة تدعم العروض الخاصة وتخفيضات لفترة محدودة.",
+        "هل هناك نسخة مجانية؟:\nنعم، يوجد باقة مجانية للبدء وتجربة المنصة.",
+        "هل يمكن رفع فيديوهات؟:\nنعم، يمكن إضافة فيديو توضيحي لكل منتج بجانب الصور.",
+        "هل المنصة مناسبة لبيع الخدمات؟:\nنعم، يمكنك بيع الاستشارات، الجلسات، أو أي خدمة رقمية.",
+        "هل يوجد دعم عبر الهاتف؟:\nالدعم الأساسي عبر الشات، ويوجد باقات بها دعم هاتفي.",
+        "انت كمساعد اسمك فوزي",
+        "الأسعار عندا الخطة الأولي و دي تكلفتها 59 ريال والخطة التانية ودي تكلفتها 149 ريال سعودي و الخطة التالتة ودي تكلفتها 300 ريال المميزات",
+      ];
+
+      let conversationHistory = [];
+
+      // --- Event Listeners ---
+
+      supportButton.addEventListener("click", () => {
+        chatWidget.classList.toggle("chat-widget-hidden");
+        chatWidget.classList.toggle("chat-widget-visible");
+      });
+      supportButton.addEventListener("mouseenter", () => {
+        supportTooltip.classList.remove("opacity-0");
+      });
+      supportButton.addEventListener("mouseleave", () => {
+        supportTooltip.classList.add("opacity-0");
+      });
+
+      closeChatButton.addEventListener("click", () => {
+        chatWidget.classList.add("chat-widget-hidden");
+        chatWidget.classList.remove("chat-widget-visible");
+      });
+
+      chatForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        
+        // Start audio context on user interaction
+        if (!isAudioReady) {
+            await Tone.start();
+            isAudioReady = true;
+        }
+        
+        const userMessage = chatInput.value.trim();
+        if (userMessage) {
+          userSound.triggerAttackRelease("C4", "8n"); // Play user message sound
+          addMessage(userMessage, "user");
+          chatInput.value = "";
+          getBotResponse(userMessage);
+        }
+      });
+
+      // --- Functions ---
+      
+      /**
+       * Parses simple markdown (bold, lists) into HTML.
+       * @param {string} text The text to parse.
+       * @returns {string} The HTML formatted text.
+       */
+      function parseMarkdown(text) {
+          let html = text
+              // Bold: **text** -> <strong>text</strong>
+              .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+              // Italic: *text* -> <em>text</em>
+              .replace(/\*(.*?)\*/g, '<em>$1</em>');
+              
+          // Handle lists: - item -> <ul><li>item</li>...</ul>
+          const lines = html.split('\n');
+          let inList = false;
+          html = lines.map(line => {
+              if (line.trim().startsWith('-')) {
+                  const listItem = `<li>${line.trim().substring(1).trim()}</li>`;
+                  if (!inList) {
+                      inList = true;
+                      return `<ul>${listItem}`;
+                  }
+                  return listItem;
+              } else {
+                  if (inList) {
+                      inList = false;
+                      return `</ul>${line}`;
+                  }
+                  return line;
+              }
+          }).join('<br>');
+
+          if (inList) {
+              html += '</ul>'; // Close list if it's the last element
+          }
+          
+          return html.replace(/<br>/g, '\n').replace(/\n/g, '<br>');
+      }
+
+      function addMessage(text, sender) {
+        const messageWrapper = document.createElement("div");
+
+        if (sender === "user") {
+          messageWrapper.innerHTML = `
+            <div class="flex items-start justify-end gap-2.5">
+                <div class="flex flex-col w-full max-w-[320px] leading-1.5 p-4 border-gray-200 bg-[#004f39] rounded-s-xl rounded-se-xl">
+                    <p class="text-sm font-normal text-white">${text}</p>
+                </div>
+            </div>
+          `;
+        } else {
+          // Parse markdown for bot messages before displaying
+          const formattedText = parseMarkdown(text);
+          messageWrapper.innerHTML = `
+            <div class="flex items-start gap-2.5">
+                <div class="flex flex-col w-full max-w-[320px] leading-1.5 p-4 border-gray-200 bg-gray-100 rounded-e-xl rounded-es-xl bot-message">
+                    <p class="text-sm font-normal text-gray-900">${formattedText}</p>
+                </div>
+            </div>
+          `;
+        }
+        chatMessages.appendChild(messageWrapper);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+
+      function toggleTypingIndicator(show) {
+        if (show) {
+          typingIndicator.classList.remove("hidden");
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+        } else {
+          typingIndicator.classList.add("hidden");
+        }
+      }
+
+      async function getBotResponse(userMessage) {
+        toggleTypingIndicator(true);
+        conversationHistory.push({ role: "user", content: userMessage });
+
+        const systemPrompt = `
+          أنت مساعد خدمة عملاء متخصص. مهمتك هي الإجابة على أسئلة المستخدمين باللغة العربية بالاعتماد **حصراً** على المعلومات التالية. لا تخمن أو تستخدم أي معلومات خارجية.
+          إذا كان السؤال خارج نطاق المعلومات المتاحة، أجب بوضوح: "عذراً، لا أملك معلومات بخصوص هذا السؤال. أنا متخصص فقط في الإجابة على الأسئلة المتعلقة بمنتجاتنا وخدماتنا."
+
+          --- معلومات أساسية ---
+          ${faqData.join("\n")}
+          --- نهاية المعلومات ---
+        `;
+
+        const messagesPayload = [
+          { role: "system", content: systemPrompt },
+          ...conversationHistory,
+        ];
+
+        try {
+          const response = await fetch(apiUrl, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${openRouterApiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: modelName,
+              messages: messagesPayload,
+            }),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(`API Error: ${response.status} - ${errorData.error.message}`);
+          }
+
+          const data = await response.json();
+          const botReply = data.choices[0].message.content;
+
+          conversationHistory.push({ role: "assistant", content: botReply });
+
+          if (conversationHistory.length > 10) {
+            conversationHistory = conversationHistory.slice(-10);
+          }
+          
+          // Play sound then add message
+          if(isAudioReady) botSound.triggerAttackRelease("G4", "8n");
+          addMessage(botReply, "bot");
+
+        } catch (error) {
+          console.error("Error fetching bot response:", error);
+          addMessage("عذراً، حدث خطأ ما. يرجى المحاولة مرة أخرى لاحقاً.", "bot");
+        } finally {
+          toggleTypingIndicator(false);
+        }
+      }
+
+      conversationHistory.push({
+        role: "assistant",
+        content: "مرحباً! أنا فوزي مساعد سهلة استور هنا لمساعدتك. كيف يمكنني خدمتك اليوم؟",
+      });
+    </script>
+  </body>
+</html>
